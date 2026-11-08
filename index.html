@@ -110,6 +110,33 @@
       </div>
     </section>
 
+    <!-- แท็บ 2: กำลังยืมอยู่ (Active Borrows) -->
+    <section id="view-active-borrows" class="tab-view">
+      <div class="panel-header">
+        <h2>รายชื่อหนังสือที่อยู่ระหว่างการยืม (ยังไม่ส่งคืน)</h2>
+        <p class="subtitle">สามารถกดปุ่ม "คืนหนังสือ" เพื่อเพิ่มยอดสต็อกกลับเข้าสู่คลังทันที</p>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>รหัสการยืม</th>
+              <th>หนังสือ</th>
+              <th>ผู้ยืม</th>
+              <th>ชั้น / เลขที่</th>
+              <th>วันที่ยืม</th>
+              <th>กำหนดคืน (7 วัน)</th>
+              <th>สถานะ</th>
+              <th style="text-align: right;">การจัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="table-active-body">
+            <!-- Rendered by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- แท็บ 3: ประวัติทั้งหมด (History) -->
     <section id="view-history" class="tab-view">
       <div class="panel-header">
