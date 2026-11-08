@@ -1,1 +1,273 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบยืม-คืนหนังสือห้องสมุดอัจฉริยะ — โรงเรียนวัดสิงห์</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
 
+  <!-- Toast แจ้งเตือนมุมจอ -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-badge">WS</div>
+        <div class="brand-text">
+          <h1>ระบบยืม-คืนหนังสือห้องสมุดดิจิทัล</h1>
+          <p>โรงเรียนวัดสิงห์ · ผลงานมินิโปรเจกต์ กลุ่มที่ 1 (ชั้น ม.5/1)</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="presentation.html" target="_blank" class="btn btn-outline" style="color: white; border-color: rgba(255,255,255,0.4);">
+          🖥️ สไลด์นำเสนอ
+        </a>
+        <button class="btn btn-success" onclick="exportDataToCSV()">
+          📥 ส่งออก Excel (CSV)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Bar -->
+  <nav class="app-nav">
+    <div class="nav-inner">
+      <button class="nav-tab active" onclick="switchTab('catalog')">
+        <span class="icon">📖</span> คลังหนังสือ
+      </button>
+      <button class="nav-tab" onclick="switchTab('active-borrows')">
+        <span class="icon">⏳</span> กำลังยืมอยู่ 
+        <span class="counter-badge" id="badge-active-count">0</span>
+      </button>
+      <button class="nav-tab" onclick="switchTab('history')">
+        <span class="icon">📋</span> ประวัติการทำรายการ
+      </button>
+      <button class="nav-tab" onclick="switchTab('admin')">
+        <span class="icon">⚙️</span> จัดการหนังสือ & แอดมิน
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="app-main">
+
+    <!-- แผงสถิติภาพรวม (Dashboard Overview) -->
+    <section class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon bg-indigo">📚</div>
+        <div class="metric-content">
+          <div class="val" id="metric-total-stock">0</div>
+          <div class="lbl">จำนวนหนังสือทั้งหมด (เล่ม)</div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon bg-emerald">🟢</div>
+        <div class="metric-content">
+          <div class="val" id="metric-available-stock">0</div>
+          <div class="lbl">พร้อมให้ยืมตอนนี้ (เล่ม)</div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon bg-amber">⏳</div>
+        <div class="metric-content">
+          <div class="val" id="metric-active-borrowed">0</div>
+          <div class="lbl">หนังสือที่ถูกยืมออกไป (เล่ม)</div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon bg-rose">🏆</div>
+        <div class="metric-content">
+          <div class="val" id="metric-total-transactions">0</div>
+          <div class="lbl">จำนวนครั้งการยืมสะสม</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- แท็บ 1: คลังหนังสือ (Catalog) -->
+    <section id="view-catalog" class="tab-view active">
+      <div class="filter-panel">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="input-search" placeholder="พิมพ์ชื่อหนังสือ, ผู้แต่ง หรือ รหัสหนังสือ..." oninput="handleSearchFilter()">
+        </div>
+        <div class="select-box">
+          <select id="select-category" onchange="handleSearchFilter()">
+            <option value="all">📂 ทุกหมวดหมู่วิชา</option>
+            <option value="วิทยาศาสตร์">วิทยาศาสตร์ (ฟิสิกส์/เคมี/ชีวะ)</option>
+            <option value="คณิตศาสตร์">คณิตศาสตร์ & แคลคูลัส</option>
+            <option value="ภาษาและสังคม">ภาษาต่างประเทศ & สังคมศึกษา</option>
+            <option value="คอมพิวเตอร์และ AI">คอมพิวเตอร์ เทคโนโลยี & AI</option>
+            <option value="วรรณกรรมและการ์ตูน">วรรณกรรม & พัฒนาตนเอง</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="books-grid" id="books-grid-container">
+        <!-- Rendered by JavaScript -->
+      </div>
+    </section>
+
+    <!-- แท็บ 2: กำลังยืมอยู่ (Active Borrows) -->
+    <section id="view-active-borrows" class="tab-view">
+      <div class="panel-header">
+        <h2>รายชื่อหนังสือที่อยู่ระหว่างการยืม (ยังไม่ส่งคืน)</h2>
+        <p class="subtitle">สามารถกดปุ่ม "คืนหนังสือ" เพื่อเพิ่มยอดสต็อกกลับเข้าสู่คลังทันที</p>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>รหัสการยืม</th>
+              <th>หนังสือ</th>
+              <th>ผู้ยืม</th>
+              <th>ชั้น / เลขที่</th>
+              <th>วันที่ยืม</th>
+              <th>กำหนดคืน (7 วัน)</th>
+              <th>สถานะ</th>
+              <th style="text-align: right;">การจัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="table-active-body">
+            <!-- Rendered by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- แท็บ 3: ประวัติทั้งหมด (History) -->
+    <section id="view-history" class="tab-view">
+      <div class="panel-header">
+        <h2>ประวัติการยืม-คืนทั้งหมดในระบบ</h2>
+        <p class="subtitle">บันทึกข้อมูลทุกรายการที่เคยเกิดขึ้น (จัดเก็บใน LocalStorage)</p>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>รหัส</th>
+              <th>ชื่อหนังสือ</th>
+              <th>ชื่อนักเรียน</th>
+              <th>รหัสนักเรียน</th>
+              <th>วันที่ยืม</th>
+              <th>วันที่คืนจริง</th>
+              <th>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="table-history-body">
+            <!-- Rendered by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- แท็บ 4: จัดการหนังสือ & แอดมิน (Admin) -->
+    <section id="view-admin" class="tab-view">
+      <div class="admin-grid">
+        <div class="card admin-form-card">
+          <h2 class="card-title">➕ เพิ่มหนังสือเล่มใหม่เข้าห้องสมุด</h2>
+          <form onsubmit="handleFormAddNewBook(event)">
+            <div class="form-row">
+              <label>ชื่อหนังสือ *</label>
+              <input type="text" id="add-title" class="form-input" required placeholder="เช่น ฟิสิกส์ ม.6 เล่ม 2">
+            </div>
+            <div class="form-row">
+              <label>ผู้แต่ง / สำนักพิมพ์</label>
+              <input type="text" id="add-author" class="form-input" placeholder="เช่น สสวท. หรือ ครูผู้สอน">
+            </div>
+            <div class="form-row-grid">
+              <div class="form-row">
+                <label>หมวดหมู่ *</label>
+                <select id="add-category" class="form-input" required>
+                  <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
+                  <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+                  <option value="ภาษาและสังคม">ภาษาและสังคม</option>
+                  <option value="คอมพิวเตอร์และ AI">คอมพิวเตอร์และ AI</option>
+                  <option value="วรรณกรรมและการ์ตูน">วรรณกรรมและการ์ตูน</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label>จำนวนสต็อก (เล่ม) *</label>
+                <input type="number" id="add-stock" class="form-input" min="1" max="50" value="3" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>ไอคอน / Emoji ประจำเล่ม</label>
+              <input type="text" id="add-icon" class="form-input" value="📘" placeholder="เช่น 🔬 📘 📐 💻">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">
+              💾 บันทึกและเพิ่มลงในฐานข้อมูล
+            </button>
+          </form>
+        </div>
+
+        <div class="card admin-info-card">
+          <h2 class="card-title">⚙️ เครื่องมือดูแลฐานข้อมูล</h2>
+          <p style="color: var(--color-muted); font-size: 14px; margin-bottom: 20px; line-height: 1.6;">
+            ระบบนี้จำลองฐานข้อมูลผ่าน <strong>Browser LocalStorage</strong> ข้อมูลจะยังคงอยู่แม้ปิดคอมพิวเตอร์ แต่หากต้องการเริ่มต้นข้อมูลชุดใหม่เพื่อทดสอบ สามารถกดปุ่มด้านล่างได้
+          </p>
+          <div class="admin-danger-zone">
+            <button class="btn btn-danger btn-block" onclick="handleResetDatabase()">
+              ⚠️ ล้างข้อมูลและโหลดชุดตั้งต้น (Reset Sample Data)
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal หน้าต่างป๊อปอัปสำหรับกดยืมหนังสือ -->
+  <div class="modal-backdrop" id="modal-borrow">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>ขอยืมหนังสือห้องสมุด</h3>
+        <button class="modal-close-btn" onclick="closeBorrowModal()">✕</button>
+      </div>
+      <div class="selected-book-preview">
+        <div class="preview-icon" id="modal-preview-icon">📖</div>
+        <div>
+          <div class="preview-title" id="modal-preview-title">-</div>
+          <div class="preview-meta">
+            สต็อกคงเหลือ: <span id="modal-preview-stock" class="highlight-stock">0</span> เล่ม
+          </div>
+        </div>
+      </div>
+      <form onsubmit="handleConfirmBorrow(event)">
+        <input type="hidden" id="modal-target-book-id">
+        <div class="form-row">
+          <label>ชื่อ-นามสกุล นักเรียนผู้ยืม *</label>
+          <input type="text" id="input-student-name" class="form-input" required placeholder="เช่น นายธีรภัทร ใจดี">
+        </div>
+        <div class="form-row-grid">
+          <div class="form-row">
+            <label>เลขประจำตัว (5 หลัก) *</label>
+            <input type="text" id="input-student-id" class="form-input" maxlength="5" required placeholder="เช่น 51234">
+          </div>
+          <div class="form-row">
+            <label>ชั้น / ห้อง *</label>
+            <input type="text" id="input-student-room" class="form-input" required placeholder="เช่น ม.5/1 เลขที่ 8">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" onclick="closeBorrowModal()">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary">✅ ยืนยันการตัดยอดและยืม</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-inner">
+      <p>© 2026 ระบบสารสนเทศห้องสมุดอัจฉริยะ โรงเรียนวัดสิงห์ · พัฒนาด้วยเทคโนโลยี Prompt AI สำหรับมินิโปรเจกต์ ม.ปลาย</p>
+    </div>
+  </footer>
+
+  <!-- Scripts เชื่อมไฟล์แยก -->
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
